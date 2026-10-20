@@ -6,9 +6,14 @@ import type { Office } from '../../model/office';
 import type { AgentSource } from '../source';
 import { opsFakeStep } from './fake';
 
-const AGENT_ID = 'ops:demo';
-const SESSION_ID = 'ops-demo-session';
-const ROOM_PATH = '/ops-copilot';
+// Prefixo demo: de propósito: o Habblaud World filtra isDemoId() e nunca projeta dados fake.
+export const OPS_FAKE_AGENT_ID = 'demo:ops:demo';
+export const OPS_FAKE_SESSION_ID = 'demo:ops-demo-session';
+export const OPS_FAKE_ROOM_PATH = 'demo:/ops-copilot';
+
+const AGENT_ID = OPS_FAKE_AGENT_ID;
+const SESSION_ID = OPS_FAKE_SESSION_ID;
+const ROOM_PATH = OPS_FAKE_ROOM_PATH;
 
 export interface OpsSourceOptions {
   office: Office;

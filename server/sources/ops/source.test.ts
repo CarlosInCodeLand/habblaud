@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { isDemoId } from '../../../shared/timeline';
+import { OPS_FAKE_AGENT_ID, OPS_FAKE_ROOM_PATH } from './source';
 import { OPS_FAKE_STEPS, opsFakeStep } from './fake';
 
 describe('ops fake source', () => {
@@ -16,5 +18,10 @@ describe('ops fake source', () => {
     expect(OPS_FAKE_STEPS.some((s) => s.activity?.tool === 'gam.read')).toBe(true);
     expect(OPS_FAKE_STEPS.some((s) => s.activity?.tool === 'sql.read')).toBe(true);
     expect(OPS_FAKE_STEPS.some((s) => s.status === 'idle')).toBe(true);
+  });
+
+  it('never projects fake ops data to Habblaud World (demo: prefix)', () => {
+    expect(isDemoId(OPS_FAKE_AGENT_ID)).toBe(true);
+    expect(isDemoId(OPS_FAKE_ROOM_PATH)).toBe(true);
   });
 });

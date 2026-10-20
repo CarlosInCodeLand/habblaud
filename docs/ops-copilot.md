@@ -6,7 +6,9 @@ Este fork adiciona o provider **ops** ao Habblaud para visualizar agentes do Ops
 
 Liga uma fonte fake, sem SSE, sem tokens e sem escrita:
 
-    HABBLAUD_OPS_FAKE=1 npm run dev
+    npm run dev:ops
+
+O atalho já liga HABBLAUD_OPS_FAKE=1 e desliga demo, World, terminal, mensagens e PTY.
 
 Abra http://localhost:4747. Deve aparecer um agente na sala **ops-copilot**, alternando:
 
@@ -25,6 +27,7 @@ O ciclo é só visual. Nada é executado de verdade.
 - Bind local (HABBLAUD_BIND=127.0.0.1).
 - Sem aprovação, terminal ou mensagens para o provider ops.
 - Sem segredos: a fonte fake não lê arquivos nem chama APIs.
+- IDs da fonte fake usam o prefixo demo: e o Habblaud World os filtra (isDemoId); nada fake sobe para o mundo.
 
 ## Próximo passo
 
