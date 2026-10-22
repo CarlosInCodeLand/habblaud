@@ -274,7 +274,7 @@ export class OpsSource implements AgentSource {
     }
     if (event.type === 'approval.decided') {
       if (this.isRosterAgent(id)) {
-        this.opts.office.setStatus(id, 'working');
+        this.opts.office.setStatus(id, 'idle');
       } else {
         this.opts.office.closeMain(id);
       }
