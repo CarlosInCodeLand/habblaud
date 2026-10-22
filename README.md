@@ -1286,3 +1286,24 @@ forgotten three days after the agent leaves.
 <p align="center">
   Made with ☕ and lots of <a href="https://code.claude.com">Claude Code</a> agents.
 </p>
+
+
+---
+
+## Ops Copilot (read-only)
+
+Além de Claude Code e Codex, o fork aceita uma fonte **ops** somente leitura via
+SSE do Ops API local:
+
+```bash
+HABBLAUD_OPS_URL=http://127.0.0.1:8787/api/ops/events \
+HABBLAUD_TERMINAL=0 HABBLAUD_MENSAGENS=0 HABBLAUD_PTY=0 \
+npm run dev
+```
+
+- `HABBLAUD_OPS_TOKEN` (opcional) vai só no servidor, nunca no navegador.
+- Salas = projeto/cliente; personagem = run/job; atividade = step/tool.
+- Approval pendente vira `waiting` com link do Telegram; o Habblaud não aprova,
+  não escreve, não abre terminal e não envia mensagens.
+- Bind local (`HABBLAUD_BIND=127.0.0.1`); acesso remoto só Tailscale/SSH.
+- `HABBLAUD_OPS_FAKE=1` mantém a demo antiga sem SSE.

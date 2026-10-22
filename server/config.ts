@@ -54,6 +54,10 @@ export interface ServerConfig {
   codex: boolean;
   /** Liga a fonte fake do Ops Copilot (sources/ops/); HABBLAUD_OPS_FAKE=1. */
   opsFake: boolean;
+  /** URL SSE read-only do Ops API (HABBLAUD_OPS_URL). */
+  opsUrl?: string;
+  /** Bearer opcional do Ops API (HABBLAUD_OPS_TOKEN). */
+  opsToken?: string;
   /** Segunda porta, com login, para o celular na rede local (http/remote.ts); ausente = desligada. */
   remote?: RemoteConfig;
   /** Por que o acesso remoto ficou desligado quando as variáveis estão incompletas. */
@@ -252,6 +256,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, argv: string[] 
     updateCheck: !env.HABBLAUD_UPDATE_CHECK?.trim() || isTruthy(env.HABBLAUD_UPDATE_CHECK),
     codex: !env.HABBLAUD_CODEX?.trim() || isTruthy(env.HABBLAUD_CODEX),
     opsFake: isTruthy(env.HABBLAUD_OPS_FAKE),
+    ...(env.HABBLAUD_OPS_URL?.trim() ? { opsUrl: env.HABBLAUD_OPS_URL.trim() } : {}),
+    ...(env.HABBLAUD_OPS_TOKEN?.trim() ? { opsToken: env.HABBLAUD_OPS_TOKEN.trim() } : {}),
     remote: remote.config,
     remoteWarning: remote.warning,
     world: parseWorldConfig(env, argv),

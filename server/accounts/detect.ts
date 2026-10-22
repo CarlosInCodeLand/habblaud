@@ -219,6 +219,8 @@ const ALIAS_TOOLS: Record<Provider, { invokes: RegExp; dir: RegExp }> = {
     invokes: /(?:^|[\s;&|(])(?:[\w.~/-]*\/)?codex(?=$|[\s;&|)])/,
     dir: /\bCODEX_HOME=(?:"([^"]*)"|'([^']*)'|([^\s;&|]+))/,
   },
+  // Ops Copilot não é descoberto por alias de shell; regex impossível mantém o Record completo.
+  ops: { invokes: /(?!)/, dir: /(?!)/ },
 };
 
 /**

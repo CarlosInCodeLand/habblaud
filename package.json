@@ -15,6 +15,7 @@
   },
   "scripts": {
     "dev": "tsx watch --clear-screen=false --exclude './client/**' server/index.ts --dev",
+    "dev:ops": "HABBLAUD_OPS_FAKE=1 HABBLAUD_DEMO=0 HABBLAUD_WORLD=0 HABBLAUD_TERMINAL=0 HABBLAUD_MENSAGENS=0 HABBLAUD_PTY=0 tsx watch --clear-screen=false --exclude './client/**' server/index.ts --dev",
     "dev:client": "vite --config vite.config.ts",
     "demo": "HABBLAUD_DEMO=1 npm run dev",
     "demo:timeline": "tsx scripts/demo-timeline.ts",
