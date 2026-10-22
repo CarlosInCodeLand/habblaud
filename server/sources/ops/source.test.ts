@@ -71,6 +71,38 @@ describe('ops SSE source', () => {
     source.stop();
   });
 
+  it('mapeia run de playbook para o especialista do roster', async () => {
+    const adds: string[] = [];
+    const statuses: string[] = [];
+    const office = {
+      has: (id: string) => adds.includes(id),
+      addMain: (input: { id: string }) => { adds.push(input.id); },
+      setStatus: (id: string, status: string) => { statuses.push(`${id}:${status}`); },
+      addActivity: () => {},
+      closeMain: () => {},
+      beginBoot: () => {},
+      endBoot: () => {},
+    };
+    const sse = 'event: run.started\ndata: {"id":"e1","type":"run.started","at":"2026-10-22T12:00:00Z","version":1,"payload":{"runId":"r1","project":"Sync Guardian","playbook":"sync_guardian","status":"working"}}\n\n';
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode(sse));
+        controller.close();
+      },
+    });
+    const source = new OpsSource({
+      office: office as never,
+      url: 'http://ops.test/api/ops/events',
+      fetcher: async () => new Response(body, { status: 200 }),
+    });
+    source.start();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(adds).toContain('ops:specialist:sync-guardian');
+    expect(adds).not.toContain('ops:r1');
+    expect(statuses).toContain('ops:specialist:sync-guardian:working');
+    source.stop();
+  });
+
   it('projeta run/step/approval no Office', async () => {
     const calls = { adds: [] as string[], statuses: [] as string[], activities: [] as string[], closed: [] as string[] };
     const office = {

@@ -27,6 +27,12 @@ export const OPS_ROSTER = [
   { key: 'deploy-engineer', role: 'Deploy/Site Engineer' },
 ] as const;
 
+/** Playbooks do Ops que atualizam um especialista do roster em vez de criar um agente novo. */
+const PLAYBOOK_AGENT: Record<string, string> = {
+  daily_briefing: 'ops:specialist:chief',
+  sync_guardian: 'ops:specialist:sync-guardian',
+};
+
 export interface OpsSourceOptions {
   office: Office;
   /** URL SSE (ex.: http://127.0.0.1:8787/api/ops/events). Sem ela, usa o fake. */
@@ -107,9 +113,13 @@ export class OpsSource implements AgentSource {
     this.timer = null;
     this.reconnect = null;
     if (this.opts.url) {
-      for (const id of this.rosterAgents.values()) this.opts.office.closeMain(id);
+      const closed = new Set<string>();
+      for (const id of [...this.rosterAgents.values(), ...this.agents.values()]) {
+        if (closed.has(id)) continue;
+        closed.add(id);
+        this.opts.office.closeMain(id);
+      }
       this.rosterAgents.clear();
-      for (const id of this.agents.values()) this.opts.office.closeMain(id);
       this.agents.clear();
     } else {
       this.opts.office.closeMain(AGENT_ID);
@@ -122,7 +132,11 @@ export class OpsSource implements AgentSource {
         label: this.opts.url ? 'Ops Copilot (SSE)' : 'Ops Copilot (fake)',
         provider: 'ops',
         path: this.opts.url ?? 'ops://local',
-        sessions: this.opts.url ? this.agents.size + this.rosterAgents.size : this.started ? 1 : 0,
+        sessions: this.opts.url
+          ? new Set([...this.rosterAgents.values(), ...this.agents.values()]).size
+          : this.started
+            ? 1
+            : 0,
         ok: true,
       },
     ];
@@ -204,7 +218,11 @@ export class OpsSource implements AgentSource {
         text: 'Run concluído',
         at,
       }, true);
-      this.opts.office.closeMain(id);
+      if (this.isRosterAgent(id)) {
+        this.opts.office.setStatus(id, 'idle');
+      } else {
+        this.opts.office.closeMain(id);
+      }
       return;
     }
     if (event.type === 'step.started') {
@@ -259,6 +277,11 @@ export class OpsSource implements AgentSource {
     }
   }
 
+  private isRosterAgent(id: string): boolean {
+    for (const agentId of this.rosterAgents.values()) if (agentId === id) return true;
+    return false;
+  }
+
   private addRoster(): void {
     const now = this.now();
     for (const item of OPS_ROSTER) {
@@ -281,6 +304,12 @@ export class OpsSource implements AgentSource {
   private ensureAgent(runId: string, payload: Record<string, unknown>, at: number): string {
     const existing = this.agents.get(runId);
     if (existing && this.opts.office.has(existing)) return existing;
+    const playbook = str(payload.playbook);
+    const mapped = playbook ? PLAYBOOK_AGENT[playbook] : undefined;
+    if (mapped && this.opts.office.has(mapped)) {
+      this.agents.set(runId, mapped);
+      return mapped;
+    }
     const project = clip(str(payload.project) ?? 'Ops Copilot', 60);
     const id = `ops:${runId}`;
     this.agents.set(runId, id);
