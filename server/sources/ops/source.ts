@@ -35,6 +35,9 @@ const PLAYBOOK_AGENT: Record<string, string> = {
   sync_guardian: 'ops:specialist:sync-guardian',
   data_freshness: 'ops:specialist:data-detective',
   project_close: 'ops:specialist:project-closer',
+  report_writer: 'ops:specialist:report-writer',
+  traffic_soc: 'ops:specialist:traffic-soc',
+  deploy_preflight: 'ops:specialist:deploy-engineer',
 };
 
 export interface OpsSourceOptions {
