@@ -16,6 +16,17 @@ const SESSION_ID = OPS_FAKE_SESSION_ID;
 const ROOM_PATH = OPS_FAKE_ROOM_PATH;
 const RECONNECT_MS = 3_000;
 
+/** Especialistas do Ops que aparecem no escritório mesmo sem um run ativo. */
+export const OPS_ROSTER = [
+  { key: 'chief', role: 'Chief of Staff' },
+  { key: 'sync-guardian', role: 'Sync Guardian' },
+  { key: 'project-closer', role: 'Project Closer' },
+  { key: 'data-detective', role: 'Data Detective' },
+  { key: 'report-writer', role: 'Report Writer' },
+  { key: 'traffic-soc', role: 'Traffic SOC' },
+  { key: 'deploy-engineer', role: 'Deploy/Site Engineer' },
+] as const;
+
 export interface OpsSourceOptions {
   office: Office;
   /** URL SSE (ex.: http://127.0.0.1:8787/api/ops/events). Sem ela, usa o fake. */
@@ -24,6 +35,8 @@ export interface OpsSourceOptions {
   token?: string;
   /** Intervalo entre eventos fake (padrão 4 s). */
   pollMs?: number;
+  /** Mostra o roster de especialistas idle (padrão true; HABBLAUD_OPS_ROSTER=0 desliga). */
+  roster?: boolean;
   now?: () => number;
   fetcher?: typeof fetch;
 }
@@ -46,18 +59,22 @@ export class OpsSource implements AgentSource {
   private readonly now: () => number;
   private readonly pollMs: number;
   private readonly agents = new Map<string, string>();
+  private readonly rosterAgents = new Map<string, string>();
+  private readonly rosterEnabled: boolean;
   private readonly seen = new Set<string>();
   private readonly fetcher: typeof fetch;
 
   constructor(private readonly opts: OpsSourceOptions) {
     this.now = opts.now ?? Date.now;
     this.pollMs = Math.max(1_000, opts.pollMs ?? 4_000);
+    this.rosterEnabled = opts.roster ?? process.env.HABBLAUD_OPS_ROSTER !== '0';
     this.fetcher = opts.fetcher ?? fetch;
   }
 
   start(): void {
     this.started = true;
     if (this.opts.url) {
+      if (this.rosterEnabled) this.addRoster();
       void this.connect();
       return;
     }
@@ -90,6 +107,8 @@ export class OpsSource implements AgentSource {
     this.timer = null;
     this.reconnect = null;
     if (this.opts.url) {
+      for (const id of this.rosterAgents.values()) this.opts.office.closeMain(id);
+      this.rosterAgents.clear();
       for (const id of this.agents.values()) this.opts.office.closeMain(id);
       this.agents.clear();
     } else {
@@ -103,7 +122,7 @@ export class OpsSource implements AgentSource {
         label: this.opts.url ? 'Ops Copilot (SSE)' : 'Ops Copilot (fake)',
         provider: 'ops',
         path: this.opts.url ?? 'ops://local',
-        sessions: this.opts.url ? this.agents.size : this.started ? 1 : 0,
+        sessions: this.opts.url ? this.agents.size + this.rosterAgents.size : this.started ? 1 : 0,
         ok: true,
       },
     ];
@@ -127,6 +146,8 @@ export class OpsSource implements AgentSource {
         });
         if (!response.ok || !response.body) throw new Error(`SSE HTTP ${response.status}`);
         await this.read(response.body);
+        if (!this.started) return;
+        await this.sleep(RECONNECT_MS);
       } catch {
         if (!this.started) return;
         await this.sleep(RECONNECT_MS);
@@ -235,6 +256,25 @@ export class OpsSource implements AgentSource {
         text: 'Aprovação decidida no Telegram',
         at,
       }, true);
+    }
+  }
+
+  private addRoster(): void {
+    const now = this.now();
+    for (const item of OPS_ROSTER) {
+      const id = `ops:specialist:${item.key}`;
+      this.rosterAgents.set(item.key, id);
+      if (this.opts.office.has(id)) continue;
+      this.opts.office.addMain({
+        id,
+        provider: 'ops',
+        account: 'ops',
+        sessionId: `specialist:${item.key}`,
+        cwd: 'ops/specialists',
+        role: item.role,
+        startedAt: now,
+        status: 'idle',
+      });
     }
   }
 

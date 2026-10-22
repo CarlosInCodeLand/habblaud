@@ -40,6 +40,37 @@ describe('ops SSE source', () => {
     expect(event?.payload.runId).toBe('r1');
   });
 
+  it('mostra o roster de especialistas mesmo sem runs', async () => {
+    const adds: string[] = [];
+    const office = {
+      has: (id: string) => adds.includes(id),
+      addMain: (input: { id: string }) => { adds.push(input.id); },
+      setStatus: () => {},
+      addActivity: () => {},
+      closeMain: () => {},
+      beginBoot: () => {},
+      endBoot: () => {},
+    };
+    const source = new OpsSource({
+      office: office as never,
+      url: 'http://ops.test/api/ops/events',
+      fetcher: async () => new Response(new ReadableStream({ start(c) { c.close(); } }), { status: 200 }),
+    });
+    source.start();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(adds).toEqual(expect.arrayContaining([
+      'ops:specialist:chief',
+      'ops:specialist:sync-guardian',
+      'ops:specialist:project-closer',
+      'ops:specialist:data-detective',
+      'ops:specialist:report-writer',
+      'ops:specialist:traffic-soc',
+      'ops:specialist:deploy-engineer',
+    ]));
+    expect(source.sources()[0]?.sessions).toBe(7);
+    source.stop();
+  });
+
   it('projeta run/step/approval no Office', async () => {
     const calls = { adds: [] as string[], statuses: [] as string[], activities: [] as string[], closed: [] as string[] };
     const office = {
