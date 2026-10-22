@@ -25,3 +25,65 @@ describe('ops fake source', () => {
     expect(isDemoId(OPS_FAKE_ROOM_PATH)).toBe(true);
   });
 });
+
+import { OpsSource, parseOpsEvent, parseSseBlocks } from './source';
+
+describe('ops SSE source', () => {
+  it('parseia blocos SSE e envelope', () => {
+    const { blocks, rest } = parseSseBlocks(
+      'id: 1\nevent: run.started\ndata: {"id":"1","type":"run.started","at":"2026-10-22T12:00:00Z","version":1,"payload":{"runId":"r1","project":"Ops","status":"working"}}\n\npartial',
+    );
+    expect(rest).toBe('partial');
+    expect(blocks).toHaveLength(1);
+    const event = parseOpsEvent(blocks[0]!);
+    expect(event?.type).toBe('run.started');
+    expect(event?.payload.runId).toBe('r1');
+  });
+
+  it('projeta run/step/approval no Office', async () => {
+    const calls = { adds: [] as string[], statuses: [] as string[], activities: [] as string[], closed: [] as string[] };
+    const office = {
+      has: (id: string) => calls.adds.includes(id),
+      addMain: (input: { id: string }) => { calls.adds.push(input.id); },
+      setStatus: (id: string, status: string) => { calls.statuses.push(`${id}:${status}`); },
+      addActivity: (_id: string, activity: { id: string }) => { calls.activities.push(activity.id); },
+      closeMain: (id: string) => { calls.closed.push(id); },
+      beginBoot: () => {},
+      endBoot: () => {},
+    };
+    const sse = [
+      'event: run.started',
+      'data: {"id":"e1","type":"run.started","at":"2026-10-22T12:00:00Z","version":1,"payload":{"runId":"r1","project":"Ops","status":"working"}}',
+      '',
+      'event: step.started',
+      'data: {"id":"e2","type":"step.started","at":"2026-10-22T12:00:01Z","version":1,"payload":{"runId":"r1","project":"Ops","stepId":"s1","tool":"sql.read","label":"Consultando"}}',
+      '',
+      'event: approval.requested',
+      'data: {"id":"e3","type":"approval.requested","at":"2026-10-22T12:00:02Z","version":1,"payload":{"runId":"r1","project":"Ops","approvalId":"a1","action":"deploy","risk":"high","telegramUrl":"https://t.me/AudmetrixBot"}}',
+      '',
+      'event: run.finished',
+      'data: {"id":"e4","type":"run.finished","at":"2026-10-22T12:00:03Z","version":1,"payload":{"runId":"r1","project":"Ops","status":"done"}}',
+      '',
+    ].join('\n');
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode(sse));
+        controller.close();
+      },
+    });
+    const source = new OpsSource({
+      office: office as never,
+      url: 'http://ops.test/api/ops/events',
+      fetcher: async () => new Response(body, { status: 200 }),
+    });
+    source.start();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    source.stop();
+    expect(calls.adds).toContain('ops:r1');
+    expect(calls.statuses).toContain('ops:r1:working');
+    expect(calls.statuses).toContain('ops:r1:waiting');
+    expect(calls.activities.some((id) => id.includes('e2'))).toBe(true);
+    expect(calls.activities.some((id) => id.includes('e3'))).toBe(true);
+    expect(calls.closed).toContain('ops:r1');
+  });
+});

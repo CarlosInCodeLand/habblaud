@@ -139,8 +139,12 @@ const agents = new SourceSet([claude]);
 const codexDirs = config.codex ? discoverCodexDirs(process.env, config.home) : [];
 const codex = codexDirs.length ? new CodexSource({ accounts, office, dirs: codexDirs, env: process.env, home: config.home }) : undefined;
 if (codex) agents.add(codex);
-const opsFake = config.opsFake ? new OpsSource({ office }) : undefined;
-if (opsFake) agents.add(opsFake);
+const ops = config.opsUrl
+  ? new OpsSource({ office, url: config.opsUrl, ...(config.opsToken ? { token: config.opsToken } : {}) })
+  : config.opsFake
+    ? new OpsSource({ office })
+    : undefined;
+if (ops) agents.add(ops);
 // Eventos dos hooks do Codex (POST /api/codex/events, mod/habblaud-codex/hook.mjs): vão para a fonte do Codex ao vivo
 // (CodexLive); sem ela (nenhuma pasta do Codex ou HABBLAUD_CODEX=0) a rota responde {ok: false}.
 const codexLive: CodexLive | undefined = codex;
