@@ -31,6 +31,7 @@ export const OPS_ROSTER = [
 const PLAYBOOK_AGENT: Record<string, string> = {
   daily_briefing: 'ops:specialist:chief',
   daily_close: 'ops:specialist:chief',
+  approval_action: 'ops:specialist:chief',
   sync_guardian: 'ops:specialist:sync-guardian',
   data_freshness: 'ops:specialist:data-detective',
   project_close: 'ops:specialist:project-closer',
@@ -269,7 +270,11 @@ export class OpsSource implements AgentSource {
       return;
     }
     if (event.type === 'approval.decided') {
-      this.opts.office.setStatus(id, 'working');
+      if (this.isRosterAgent(id)) {
+        this.opts.office.setStatus(id, 'working');
+      } else {
+        this.opts.office.closeMain(id);
+      }
       this.opts.office.addActivity(id, {
         id: `${id}#${event.id}`,
         kind: 'done',
