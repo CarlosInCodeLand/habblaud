@@ -30,7 +30,10 @@ export const OPS_ROSTER = [
 /** Playbooks do Ops que atualizam um especialista do roster em vez de criar um agente novo. */
 const PLAYBOOK_AGENT: Record<string, string> = {
   daily_briefing: 'ops:specialist:chief',
+  daily_close: 'ops:specialist:chief',
   sync_guardian: 'ops:specialist:sync-guardian',
+  data_freshness: 'ops:specialist:data-detective',
+  project_close: 'ops:specialist:project-closer',
 };
 
 export interface OpsSourceOptions {
