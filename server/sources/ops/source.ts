@@ -200,6 +200,10 @@ export class OpsSource implements AgentSource {
   private applyEvent(event: OpsEvent): void {
     if (this.seen.has(event.id)) return;
     this.seen.add(event.id);
+    if (this.seen.size > 5_000) {
+      const oldest = this.seen.values().next().value;
+      if (oldest) this.seen.delete(oldest);
+    }
     const at = Number.isFinite(Date.parse(event.at)) ? Date.parse(event.at) : this.now();
     const payload = event.payload;
     const runId = str(payload.runId) ?? 'ops';
